@@ -349,6 +349,14 @@ notice changes to `ksp-cfg-idle-delay'.")
 	 (setq ksp-cfg-current-idle-delay ksp-cfg-idle-delay)
 	 (timer-set-idle-time ksp-cfg-timer ksp-cfg-idle-delay t))))
 
+(defun ksp-cfg-in-value-of-key-p (key)
+  "True if point is inside the value part of a node's key named key."
+  (save-excursion
+    (let ((origin (point))
+	  (bol (progn (beginning-of-line) (point)))
+	  (re (concat "^\\s-*\\s.?" key "\\s-*=")))
+      (search-forward-regexp re origin t))))
+
 (defun ksp-cfg-show-help ()
   "Try to display a relevant help message for the context around
 point.  Ensures the message doesn't go to the *Messages* buffer."
@@ -409,14 +417,6 @@ point.  Ensures the message doesn't go to the *Messages* buffer."
   "Clear the message display, if any."
   (let ((message-log-max nil))
     (message nil)))
-
-(defun in-value-of-key-p (key)
-  "True if point is inside the value part of a node's key named key."
-  (save-excursion
-    (let ((origin (point))
-	  (bol (progn (beginning-of-line) (point)))
-	  (re (concat "^\\s-*\\s.?" key "\\s-*=")))
-      (search-forward-regexp re origin t))))
 
 (define-derived-mode ksp-cfg-mode fundamental-mode "KSP-cfg"
   "Major mode for editing Kerbal Space Program configuration files for

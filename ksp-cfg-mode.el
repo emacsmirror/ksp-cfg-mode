@@ -1,4 +1,4 @@
-;;; KSP-cfg mode --- major mode for editing KSP CFG and ModuleManager files
+;;; KSP-cfg-mode --- major mode for editing KSP CFG and ModuleManager files
 
 ;; Copyright (c) 2016 Emily Backes
 

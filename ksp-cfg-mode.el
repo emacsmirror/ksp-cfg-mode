@@ -2,6 +2,16 @@
 
 ;; Copyright (c) 2016 Emily Backes
 
+;; Author: Emily Backes <lucca@accela.net>
+;; Maintainer: Emily Backes <lucca@accela.net>
+;; Created: 3 May 2016
+
+;; Version: 0.1
+;; Keywords: data
+;; Homepage: http://github.com/lashtear/ksp-cfg-mode
+
+;; This file is not part of GNU Emacs.
+
 ;; Redistribution and use in source and binary forms, with or without
 ;; modification, are permitted provided that the following conditions
 ;; are met:
@@ -30,9 +40,6 @@
 ;; NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;; SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-;; Author: Emily Backes <lucca@accela.net>
-;; Keywords: languages games modding
-
 ;;; Commentary:
 
 ;; This defines a new major mode for KSP modding of part files that
@@ -53,21 +60,34 @@
   :prefix "ksp-cfg-")
 
 (defcustom ksp-cfg-basic-indent 8
-  "Indentation of KSP cfg structures inside curly braces.  Squad
-seems to use 8."
+  "Indentation of KSP cfg structures inside curly braces.
+
+Squad seems to use 8-- or at least tab characters; see
+`ksp-cfg-tab-width' for more information."
   :type 'integer
   :group 'ksp-cfg
   :safe t)
 
-(defcustom ksp-cfg-idle-help-p t
+(defcustom ksp-cfg-tab-width 8
+  "Width of the tab character for KSP cfg files.
+
+Squad seems to use tabs for their basic indent, so setting this
+to match `ksp-cfg-basic-indent' will match their layout no matter
+what width you use."
+  :type 'integer
+  :group 'ksp-cfg
+  :safe t)
+
+(defcustom ksp-cfg-show-idle-help t
   "Display context-sensitive help when idle."
   :type 'boolean
   :group 'ksp-cfg
   :risky t)
 
 (defcustom ksp-cfg-idle-delay 0.125
-  "Number of seconds idle time to wait before trying to help the
-user based on context.  `ksp-cfg-idle-help-p' must be non-nil."
+  "Seconds of delay before showing context-sensitive help.
+
+Use `ksp-cfg-idle-help` to disable this entirely."
   :type 'number
   :group 'ksp-cfg
   :risky t)
@@ -78,43 +98,36 @@ user based on context.  `ksp-cfg-idle-help-p' must be non-nil."
   :group 'faces
   :prefix "ksp-cfg-")
 
-(defvar ksp-cfg-node-face 'ksp-cfg-node-face)
 (defface ksp-cfg-node-face
   '((t (:inherit font-lock-type-face)))
   "Face for KSP-cfg nodes, used to open brace-blocks like PART, MODULE, etc."
   :group 'ksp-cfg-faces)
 
-(defvar ksp-cfg-key-face 'ksp-cfg-key-face)
 (defface ksp-cfg-key-face
   '((t (:inherit font-lock-variable-name-face)))
   "Face for KSP-cfg keys, which come before = inside nodes."
   :group 'ksp-cfg-faces)
 
-(defvar ksp-cfg-name-face 'ksp-cfg-name-face)
 (defface ksp-cfg-name-face
   '((t (:inherit font-lock-variable-name-face :slant italic)))
  "Face for KSP-cfg names, as in \[name\] or name = ..."
   :group 'ksp-cfg-faces)
 
-(defvar ksp-cfg-constant-face 'ksp-cfg-constant-face)
 (defface ksp-cfg-constant-face
   '((default :inherit font-lock-constant-face))
   "Face for KSP-cfg known constants, like true and false."
   :group 'ksp-cfg-faces)
 
-(defvar ksp-cfg-number-face 'ksp-cfg-number-face)
 (defface ksp-cfg-number-face
   '((t (:inherit font-lock-string-face)))
  "Face for KSP-cfg numbers."
   :group 'ksp-cfg-faces)
 
-(defvar ksp-cfg-filter-face 'ksp-cfg-filter-face)
 (defface ksp-cfg-filter-face
   '((t (:inherit font-lock-builtin-face)))
   "Face for KSP-cfg filters, such as :HAS :NEEDS and :FINAL."
   :group 'ksp-cfg-faces)
 
-(defvar ksp-cfg-operator-face 'ksp-cfg-operator-face)
 (defface ksp-cfg-operator-face
   '((t (:inherit font-lock-keyword-face)))
   "Face for KSP-cfg operators."
@@ -211,45 +224,44 @@ user based on context.  `ksp-cfg-idle-help-p' must be non-nil."
   (let ((outer-context (match-string 1))
 	(inner-operator (match-string 2))
 	(symbol-operand (match-string 3))
-	(symbol-target (or (match-string 4) "...none yet ...")))
+	(symbol-target (match-string 4)))
     (message "filter payload: %s%s%s"
-	     outer-context
 	     (cl-case (string-to-char outer-context)
-	       (?| ": OR ... ")
-	       ((?& ?,) ": AND ... ")
-	       (t "(no outer context) "))
+	       (?| (concat outer-context ": ... OR "))
+	       ((?& ?,) (concat outer-context ": ... AND "))
+	       (t ""))
 	     (format
 	      (cl-case (string-to-char inner-operator)
-		(?@ "%s: include %s nodes matching %s")
-		((?! ?-) "%s: exclude %s nodes matching %s")
-		(?# "%s: include %s keys matching %s")
-		(?~ "%s: exclude %s keys matching %s"))
+		(?@ "%s: include %s nodes")
+		((?! ?-) "%s: exclude %s nodes")
+		(?# "%s: include %s keys")
+		(?~ "%s: exclude %s keys"))
 	      inner-operator
-	      symbol-operand
-	      symbol-target))))
+	      symbol-operand)
+	     (if symbol-target (concat "matching " symbol-target) ""))))
 
-(defvar ksp-cfg-keywords nil)
-(setq ksp-cfg-keywords
-      `((,ksp-cfg-node-decl-regexp
-	 (1 ksp-cfg-operator-face)
-	 (2 ksp-cfg-node-face)
-	 (4 ksp-cfg-name-face nil t))
-	("^\\s-*\\(\\s.?\\)\\(name\\)\\s-*=\\s-*\\(\\s_+\\)\\s-*$"
-	 (1 ksp-cfg-operator-face)
-	 (2 ksp-cfg-key-face)
-	 (3 ksp-cfg-name-face))
-	("^\\s-*\\(\\s.?\\)\\(\\s_+\\)\\s-*\\s.?="
-	 (1 ksp-cfg-operator-face)
-	 (2 ksp-cfg-key-face))
-	("\\([#~]\\)\\(\\s_+\\)"
-	 (1 ksp-cfg-operator-face)
-	 (2 ksp-cfg-key-face))
-	("\\_<\\([Tt]rue\\|[Ff]alse\\)\\_>"
-	 (1 ksp-cfg-constant-face))
-	("\\(-?\\_<[0-9]+\\(?:\\.[0-9]+\\)?\\(?:[eE][-+]?[0-9]+\\)?\\)\\_>"
-	 (1 ksp-cfg-number-face))
-	(,(concat "\\(:" (regexp-opt ksp-cfg-filter-types 'symbols) "\\)")
-	 (1 ksp-cfg-filter-face))))
+(defvar ksp-cfg-keywords
+  `((,ksp-cfg-node-decl-regexp
+     (1 'ksp-cfg-operator-face)
+     (2 'ksp-cfg-node-face)
+     (4 'ksp-cfg-name-face nil t))
+    ("^\\s-*\\(\\s.?\\)\\(name\\)\\s-*=\\s-*\\(\\s_+\\)\\s-*$"
+     (1 'ksp-cfg-operator-face)
+     (2 'ksp-cfg-key-face)
+     (3 'ksp-cfg-name-face))
+    ("^\\s-*\\(\\s.?\\)\\(\\s_+\\)\\s-*\\s.?="
+     (1 'ksp-cfg-operator-face)
+     (2 'ksp-cfg-key-face))
+    ("\\([#~]\\)\\(\\s_+\\)"
+     (1 'ksp-cfg-operator-face)
+     (2 'ksp-cfg-key-face))
+    ("\\_<\\([Tt]rue\\|[Ff]alse\\)\\_>"
+     (1 'ksp-cfg-constant-face))
+    ("\\(-?\\_<[0-9]+\\(?:\\.[0-9]+\\)?\\(?:[eE][-+]?[0-9]+\\)?\\)\\_>"
+     (1 'ksp-cfg-number-face))
+    (,(concat "\\(:" (regexp-opt ksp-cfg-filter-types 'symbols) "\\)")
+     (1 'ksp-cfg-filter-face)))
+  "Keywords used by ksp-cfg-mode font-locking.")
 
 (defvar ksp-cfg-mode-syntax-table
   (let ((st (make-syntax-table)))
@@ -258,8 +270,8 @@ user based on context.  `ksp-cfg-idle-help-p' must be non-nil."
     (modify-syntax-entry '(?a . ?z) "_" st)
     (modify-syntax-entry '(?0 . ?9) "_" st)
     (modify-syntax-entry ?_ "_" st)
-    (modify-syntax-entry ?\  " " st)
-    (modify-syntax-entry ?\t " " st)
+    (modify-syntax-entry ?\  "-" st)
+    (modify-syntax-entry ?\t "-" st)
     (modify-syntax-entry ?\{ "(\}" st)
     (modify-syntax-entry ?\} ")\{" st)
     (modify-syntax-entry ?\[ "(\]" st)
@@ -267,7 +279,12 @@ user based on context.  `ksp-cfg-idle-help-p' must be non-nil."
     (modify-syntax-entry ?\n "> " st)
     (modify-syntax-entry ?\r "> " st)
     (modify-syntax-entry ?/ ". 12" st)
-    ;;; note specifically that parens do not behave as parens.
+    ;;; Note specifically that parens do not behave as parens; Squad's
+    ;;; parts keywords have odd unmatched ones all over the place.
+
+    ;;; Note also that there is no string-syntax defined; we could
+    ;;; enable = for this (to end-of-line, I suppose), but that isn't
+    ;;; always desirable either.
     st)
   "Syntax table used in ksp-cfg-mode buffers.")
 
@@ -339,7 +356,11 @@ like trailing blank removal."
 notice changes to `ksp-cfg-idle-delay'.")
 
 (defun ksp-cfg-schedule-timer ()
-  (or (and ksp-cfg-timer
+  "Install the context-help timer if enabled by
+`ksp-cfg-show-idle-help' and not already running.  Adjust delay
+time if already running and the `ksp-cfg-idle-delay' has changed."
+  (or (not ksp-cfg-show-idle-help)
+      (and ksp-cfg-timer
 	   (memq ksp-cfg-timer timer-idle-list))
       (setq ksp-cfg-timer
 	    (run-with-idle-timer
@@ -350,7 +371,8 @@ notice changes to `ksp-cfg-idle-delay'.")
 	 (timer-set-idle-time ksp-cfg-timer ksp-cfg-idle-delay t))))
 
 (defun ksp-cfg-in-value-of-key-p (key)
-  "True if point is inside the value part of a node's key named key."
+  "Return true if point is inside the value part of a node's key
+named key."
   (save-excursion
     (let ((origin (point))
 	  (bol (progn (beginning-of-line) (point)))
@@ -407,9 +429,9 @@ point.  Ensures the message doesn't go to the *Messages* buffer."
 	     (ksp-cfg-explain-filter-spec))
 	    ((looking-at ksp-cfg-filter-payload-regexp)
 	     (ksp-cfg-explain-filter-payload))
-	    ((in-value-of-key-p "attachRules")
+	    ((ksp-cfg-in-value-of-key-p "attachRules")
 	     (message "%s" "attachRules: list of numbers (0=false, 1=true): stack, srfAttach, allowStack, allowSrfAttach, allowCollision"))
-	    ((in-value-of-key-p "name")
+	    ((ksp-cfg-in-value-of-key-p "name")
 	     (message "%s" "name: sets the name of this node"))
 	    (t nil))))))))
 
@@ -418,6 +440,7 @@ point.  Ensures the message doesn't go to the *Messages* buffer."
   (let ((message-log-max nil))
     (message nil)))
 
+;;;###autoload
 (define-derived-mode ksp-cfg-mode fundamental-mode "KSP-cfg"
   "Major mode for editing Kerbal Space Program configuration files for
 use in modding parts, etc.
@@ -429,11 +452,12 @@ use in modding parts, etc.
   (setq-local comment-start "//")
   (setq-local comment-start-skip "//+\\s-*")
   (setq-local comment-end "")
-  (setq-local indent-line-function 'ksp-cfg-indent-line)
+  (setq-local indent-line-function #'ksp-cfg-indent-line)
   (setq-local font-lock-defaults '(ksp-cfg-keywords nil t nil))
   (setq-local indent-tabs-mode t)
-  (add-hook 'post-command-hook 'ksp-cfg-schedule-timer nil t)
-  (add-hook 'pre-command-hook 'ksp-cfg-clear-message nil t)
+  (setq-local tab-width ksp-cfg-tab-width)
+  (add-hook 'post-command-hook #'ksp-cfg-schedule-timer nil t)
+  (add-hook 'pre-command-hook #'ksp-cfg-clear-message nil t)
   (ksp-cfg-cleanup)
   (font-lock-fontify-buffer))
 

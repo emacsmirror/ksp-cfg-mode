@@ -4,7 +4,7 @@ A major-mode for editing Kerbal Space Program part (and other things) config fil
 
 ## Status
 
-* Initial release!  No version yet.
+* Release 0.1; should work with packagers
 * Syntactic lex with good (well, enthusiastic and correct if not tasteful) highlighting
 * Intelligent automatic indentation
 * Context-sensitive advice in the minibuffer
@@ -18,5 +18,4 @@ A major-mode for editing Kerbal Space Program part (and other things) config fil
 ## Features probably needed for a wider release
 
 * More conservative cleanup-on-load settings
-* Emacs packaging stuffs
 * Testing by more people

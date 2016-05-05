@@ -8,7 +8,9 @@
 
 ;; Version: 0.1
 ;; Keywords: data
+;; URL: http://github.com/lashtear/ksp-cfg-mode
 ;; Homepage: http://github.com/lashtear/ksp-cfg-mode
+;; Package: ksp-cfg-mode
 
 ;; This file is not part of GNU Emacs.
 

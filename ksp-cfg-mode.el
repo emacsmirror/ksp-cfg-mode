@@ -1,4 +1,4 @@
-;;; KSP-cfg-mode --- major mode for editing KSP CFG and ModuleManager files
+;;; ksp-cfg-mode.el --- major mode for editing KSP CFG files
 
 ;; Copyright (c) 2016 Emily Backes
 
@@ -6,11 +6,13 @@
 ;; Maintainer: Emily Backes <lucca@accela.net>
 ;; Created: 3 May 2016
 
-;; Version: 0.1
+;; Version: 0.2
+;; Package-Version: 0.2
 ;; Keywords: data
 ;; URL: http://github.com/lashtear/ksp-cfg-mode
 ;; Homepage: http://github.com/lashtear/ksp-cfg-mode
 ;; Package: ksp-cfg-mode
+;; Package-Requires: ((emacs "24.3"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -177,6 +179,10 @@ Use `ksp-cfg-idle-help` to disable this entirely."
 	  "\\)\\]\\)?"))
 
 (defun ksp-cfg-explain-node-decl ()
+  "Provide context-sensitive help related to a cfg NODE.
+
+The node should have been just-matched with
+`ksp-cfg-node-decl-regexp'."
   (let ((op (match-string 1))
 	(node-type (match-string 2))
 	(target (match-string 4)))
@@ -196,6 +202,10 @@ Use `ksp-cfg-idle-help` to disable this entirely."
   (concat ":\\(" (regexp-opt ksp-cfg-filter-types 'symbols) "\\)"))
 
 (defun ksp-cfg-explain-filter-spec ()
+  "Provide context-sensitive help related to a :filter or :pass term.
+
+The specshould have been just-matched with
+`ksp-cfg-filter-spec-regexp'."
   (let ((filter-type (match-string 1))
 	(decased-type (upcase (match-string 1))))
     (message ":%s%s" filter-type
@@ -223,6 +233,10 @@ Use `ksp-cfg-idle-help` to disable this entirely."
 	  "\\)\\]\\)?"))
 
 (defun ksp-cfg-explain-filter-payload ()
+  "Provide context-sensitive help related to :use filter guts.
+
+The payloads should have been just-matched with
+`ksp-cfg-filter-payload-regexp'."
   (let ((outer-context (match-string 1))
 	(inner-operator (match-string 2))
 	(symbol-operand (match-string 3))
@@ -301,13 +315,14 @@ Use `ksp-cfg-idle-help` to disable this entirely."
   "Keymap used in ksp-cfg-mode buffers.")
 
 (defun ksp-cfg-region-balance (start end)
-  "Determine the structural balance across the described region
-by examining braces.
+  "Determine the structural balance across the described region.
 
-Currently this is called with start at (point-min), so it scans
+Currently this is called with START at (point-min), so it scans
 from the beginning of the buffer for any region, which is not a
 good idea for full-buffer re-indentation (O(n^2)).  As KSP
 configs are generally fairly small, this will do for now.
+
+Generally END should be the beginning or end of the current line.
 
 This simple lexer does understand and handle the // so that
 commented structures do not interfere with indentation."
@@ -328,7 +343,7 @@ commented structures do not interfere with indentation."
      finally return balance)))
 
 (defun ksp-cfg-indent-line ()
-  "Intelligently indent the current line according to `ksp-cfg-basic-indent'."
+  "Indent the current line according to `ksp-cfg-basic-indent'."
   (save-excursion
     (let* ((origin (point))
 	   (bol (progn (beginning-of-line) (point)))
@@ -342,9 +357,10 @@ commented structures do not interfere with indentation."
 	(indent-rigidly bol eol delta)))))
 
 (defun ksp-cfg-cleanup ()
-  "Perform various cleanups of the buffer; this will re-indent,
-convert spaces to tabs, and perform general whitespace cleanup
-like trailing blank removal."
+  "Perform various cleanups of the buffer.
+
+This will re-indent, convert spaces to tabs, and perform general
+whitespace cleanup like trailing blank removal."
   (interactive)
   (tabify (point-min) (point-max))
   (indent-region (point-min) (point-max))
@@ -354,13 +370,17 @@ like trailing blank removal."
 (defvar ksp-cfg-timer nil
   "KSP-cfg's timer object.")
 (defvar ksp-cfg-current-idle-delay ksp-cfg-idle-delay
-  "Idle time delay in use by KSP-cfg's timer; this is used to
-notice changes to `ksp-cfg-idle-delay'.")
+  "Idle time delay in use by KSP-cfg's timer.
+
+This is used to notice changes to `ksp-cfg-idle-delay'.")
 
 (defun ksp-cfg-schedule-timer ()
-  "Install the context-help timer if enabled by
+  "Install the context-help timer.
+
+Check first to make certain it is enabled by
 `ksp-cfg-show-idle-help' and not already running.  Adjust delay
-time if already running and the `ksp-cfg-idle-delay' has changed."
+time if already running and the `ksp-cfg-idle-delay' has
+changed."
   (or (not ksp-cfg-show-idle-help)
       (and ksp-cfg-timer
 	   (memq ksp-cfg-timer timer-idle-list))
@@ -373,8 +393,7 @@ time if already running and the `ksp-cfg-idle-delay' has changed."
 	 (timer-set-idle-time ksp-cfg-timer ksp-cfg-idle-delay t))))
 
 (defun ksp-cfg-in-value-of-key-p (key)
-  "Return true if point is inside the value part of a node's key
-named key."
+  "Return true if point is inside the value of key KEY."
   (save-excursion
     (let ((origin (point))
 	  (bol (progn (beginning-of-line) (point)))
@@ -382,8 +401,10 @@ named key."
       (search-forward-regexp re origin t))))
 
 (defun ksp-cfg-show-help ()
-  "Try to display a relevant help message for the context around
-point.  Ensures the message doesn't go to the *Messages* buffer."
+  "Try to display a context-relevant help message.
+
+Looks around the `point' for recognizable structures.  Ensures
+the message doesn't go to the *Messages* buffer."
   (let ((message-log-max nil))
     (and
      (not (or this-command
@@ -449,7 +470,7 @@ use in modding parts, etc.
 
 \\<ksp-cfg-mode-map>"
   :group 'ksp-cfg
-  (setq-local local-abbrev-tables ksp-cfg-mode-abbrev-table)
+  (setq-local local-abbrev-table ksp-cfg-mode-abbrev-table)
   (setq-local case-fold-search t)
   (setq-local comment-start "//")
   (setq-local comment-start-skip "//+\\s-*")

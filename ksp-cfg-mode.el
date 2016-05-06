@@ -6,13 +6,13 @@
 ;; Maintainer: Emily Backes <lucca@accela.net>
 ;; Created: 3 May 2016
 
-;; Version: 0.2
-;; Package-Version: 0.2
+;; Version: 0.3
+;; Package-Version: 0.3
 ;; Keywords: data
 ;; URL: http://github.com/lashtear/ksp-cfg-mode
 ;; Homepage: http://github.com/lashtear/ksp-cfg-mode
 ;; Package: ksp-cfg-mode
-;; Package-Requires: ((emacs "24.3"))
+;; Package-Requires: ((cl-lib "0.5"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -56,7 +56,8 @@
 
 ;;; Code:
 
-(require 'cl-lib)
+(eval-when-compile
+  (require 'cl-lib)) ;; using cl-case and cl-loop
 
 (defgroup ksp-cfg nil
   "Major mode for editing Kerbal Space Program cfg files in Emacs."
@@ -470,19 +471,23 @@ use in modding parts, etc.
 
 \\<ksp-cfg-mode-map>"
   :group 'ksp-cfg
-  (setq-local local-abbrev-table ksp-cfg-mode-abbrev-table)
-  (setq-local case-fold-search t)
-  (setq-local comment-start "//")
-  (setq-local comment-start-skip "//+\\s-*")
-  (setq-local comment-end "")
-  (setq-local indent-line-function #'ksp-cfg-indent-line)
-  (setq-local font-lock-defaults '(ksp-cfg-keywords nil t nil))
-  (setq-local indent-tabs-mode t)
-  (setq-local tab-width ksp-cfg-tab-width)
+
+  ;; already buffer-local when set
+  (setq font-lock-defaults  '(ksp-cfg-keywords nil t nil)
+	indent-tabs-mode     t
+	tab-width            ksp-cfg-tab-width
+	local-abbrev-table   ksp-cfg-mode-abbrev-table
+	case-fold-search     t)
+
+  ;; make buffer-local for our purposes
+  (set (make-local-variable 'comment-start) "//")
+  (set (make-local-variable 'comment-start-skip) "//+\\s-*")
+  (set (make-local-variable 'comment-end) "")
+  (set (make-local-variable 'indent-line-function) #'ksp-cfg-indent-line)
+
   (add-hook 'post-command-hook #'ksp-cfg-schedule-timer nil t)
   (add-hook 'pre-command-hook #'ksp-cfg-clear-message nil t)
-  (ksp-cfg-cleanup)
-  (font-lock-fontify-buffer))
+  (ksp-cfg-cleanup))
 
 (provide 'ksp-cfg-mode)
 

@@ -1,6 +1,6 @@
 # KSP-CFG mode
 
-[![MELPA](http://melpa.org/packages/ksp-cfg-mode-badge.svg)](http://melpa.org/#/ksp-cfg-mode)
+[![MELPA](http://melpa.org/packages/ksp-cfg-mode-badge.svg)](http://melpa.org/#/ksp-cfg-mode) [![BSD3](https://img.shields.io/badge/license-BSD3-43cd80.svg)](LICENSE.md)
 
 A major-mode for editing Kerbal Space Program part (and other things) config files in Emacs.
 

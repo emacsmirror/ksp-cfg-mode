@@ -83,6 +83,18 @@ what width you use."
   :group 'ksp-cfg
   :safe t)
 
+(defcustom ksp-cfg-cleanup-on-load nil
+  "Run ksp-cfg-cleanup on load for indentation."
+  :type 'boolean
+  :group 'ksp-cfg
+  :safe t)
+
+(defcustom ksp-cfg-cleanup-on-save t
+  "Run ksp-cfg-cleanup on save for indentation."
+  :type 'boolean
+  :group 'ksp-cfg
+  :safe t)
+
 (defcustom ksp-cfg-show-idle-help t
   "Display context-sensitive help when idle."
   :type 'boolean
@@ -464,10 +476,18 @@ the message doesn't go to the *Messages* buffer."
   (let ((message-log-max nil))
     (message nil)))
 
+(defun ksp-cfg-maybe-cleanup-on-save ()
+  "Call ksp-cfg-cleanup from the before-save-hook if enabled."
+  (when ksp-cfg-cleanup-on-save
+    (ksp-cfg-cleanup)))
+
 ;;;###autoload
 (define-derived-mode ksp-cfg-mode fundamental-mode "KSP-cfg"
-  "Major mode for editing Kerbal Space Program configuration files for
-use in modding parts, etc.
+  "Major mode for editing Kerbal Space Program .cfg files.
+
+See http://wiki.kerbalspaceprogram.com/wiki/CFG_File_Documentation
+for more information on how this data is structured and how it
+might be used.
 
 \\<ksp-cfg-mode-map>"
   :group 'ksp-cfg
@@ -487,7 +507,9 @@ use in modding parts, etc.
 
   (add-hook 'post-command-hook #'ksp-cfg-schedule-timer nil t)
   (add-hook 'pre-command-hook #'ksp-cfg-clear-message nil t)
-  (ksp-cfg-cleanup))
+  (add-hook 'before-save-hook #'ksp-cfg-maybe-cleanup-on-save)
+  (when ksp-cfg-cleanup-on-load
+    (ksp-cfg-cleanup)))
 
 (provide 'ksp-cfg-mode)
 

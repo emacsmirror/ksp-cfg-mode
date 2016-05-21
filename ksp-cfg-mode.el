@@ -6,8 +6,8 @@
 ;; Maintainer: Emily Backes <lucca@accela.net>
 ;; Created: 3 May 2016
 
-;; Version: 0.3
-;; Package-Version: 0.3
+;; Version: 0.4
+;; Package-Version: 0.4
 ;; Keywords: data
 ;; URL: http://github.com/lashtear/ksp-cfg-mode
 ;; Homepage: http://github.com/lashtear/ksp-cfg-mode
@@ -89,11 +89,18 @@ what width you use."
   :group 'ksp-cfg
   :safe t)
 
-(defcustom ksp-cfg-cleanup-on-save t
+(defcustom ksp-cfg-cleanup-on-save nil
   "Run ksp-cfg-cleanup on save for indentation."
   :type 'boolean
   :group 'ksp-cfg
   :safe t)
+
+(defcustom ksp-cfg-indent-method #'ksp-cfg-indent-line
+  "Select single-line indentation methodology."
+  :type '(radio (function-item #'ksp-cfg-indent-line)
+		(function-item #'ksp-cfg-indent-line-inductive))
+  :group 'ksp-cfg
+  :risky t)
 
 (defcustom ksp-cfg-show-idle-help t
   "Display context-sensitive help when idle."
@@ -340,26 +347,37 @@ Generally END should be the beginning or end of the current line.
 This simple lexer does understand and handle the // so that
 commented structures do not interfere with indentation."
   (save-excursion
-    (cl-loop
-     initially (progn
-		 (goto-char start)
-		 (skip-chars-forward "^{}/" end))
-     when (looking-at "{") sum +1 into balance
-     when (looking-at "}") sum -1 into balance
-     when (looking-at "//") do (progn
-				 (end-of-line)
-				 (backward-char))
-     do (progn
-	  (forward-char)
-	  (skip-chars-forward "^{}/" end))
-     until (>= (point) end)
-     finally return balance)))
+    (let ((s (progn
+	       (goto-char start)
+	       (beginning-of-line)
+	       (point))))
+      (cl-loop
+       initially (goto-char s)
+       do (skip-chars-forward "^{}/" end)
+       while (< (point) end)
+       if (looking-at "{") sum +1 into balance
+       else if (looking-at "}") sum -1 into balance
+       else if (looking-at "//") do (end-of-line) end end end
+       if (not (eql (point) (point-max)))
+       do (progn (forward-char) (skip-chars-forward "^{}/"))
+       end
+       finally return balance))))
 
 (defun ksp-cfg-indent-line ()
-  "Indent the current line according to `ksp-cfg-basic-indent'."
+  "Indent the current line using the whole buffer.
+
+This function uses `ksp-cfg-region-balance' with start
+at (point-min), so it scans from the beginning of the buffer.
+Only the current line is changed, but all previous lines are
+considered.
+
+If indenting a region, use `ksp-cfg-indent-region', which will
+operate at O(n) rather than O(n^2).  See also
+`ksp-cfg-indent-line-inductive' which assumes prior lines are
+correct."
+  (interactive "*")
   (save-excursion
-    (let* ((origin (point))
-	   (bol (progn (beginning-of-line) (point)))
+    (let* ((bol (progn (beginning-of-line) (point)))
 	   (eol (progn (end-of-line) (point)))
 	   (nest (ksp-cfg-region-balance (point-min) eol))
 	   (local-change (ksp-cfg-region-balance bol eol))
@@ -369,14 +387,74 @@ commented structures do not interfere with indentation."
       (when (and (>= goal 0) (not (zerop delta)))
 	(indent-rigidly bol eol delta)))))
 
+(defun ksp-cfg-previous-balance ()
+  "Determine the previous indent level.
+
+This does not handle comments specially, except through
+`ksp-cfg-region-balance' on some previous line.  Compare with
+`ksp-cfg-indent-line' for the calculation.
+
+This value should match `ksp-cfg-region-balance' over the region
+from the beginning of the buffer to just before the current
+line-- assuming that was indented right."
+  (save-excursion
+    (beginning-of-line)
+    (skip-syntax-backward "->")
+    (let* ((bol (progn (beginning-of-line) (point)))
+	   (eol (progn (end-of-line) (point)))
+	   (prev-indent (ceiling (current-indentation)
+				 ksp-cfg-basic-indent))
+	   (local-change (ksp-cfg-region-balance bol eol)))
+      (+ prev-indent (max 0 local-change)))))
+
+(defun ksp-cfg-indent-line-inductive ()
+  "Indent the current line assuming lines above are correct.
+
+See also `ksp-cfg-indent-line'."
+  (interactive "*")
+  (save-excursion
+    (let* ((bol (progn (beginning-of-line) (point)))
+	   (eol (progn (end-of-line) (point)))
+	   (prev-bal (ksp-cfg-previous-balance))
+	   (local-change (ksp-cfg-region-balance bol eol))
+	   (goal (* ksp-cfg-basic-indent
+		    (+ prev-bal (min 0 local-change))))
+	   (delta (- goal (current-indentation))))
+      (when (and (>= goal 0) (not (zerop delta)))
+	(indent-rigidly bol eol delta)))))
+
+(defun ksp-cfg-indent-region (start end)
+  "Indent the region START .. END."
+  (interactive "*r")
+  (let ((e (min (point-max) end)))
+    (save-excursion
+      (cl-loop
+       with pr
+       initially (progn
+		   (goto-char start)
+		   (ksp-cfg-indent-line)
+		   (forward-line 1)
+		   (setq pr
+			 (make-progress-reporter "Indenting region..."
+						 (point) e)))
+       while (< (1+ (point)) e)
+       do (progn
+	    (ksp-cfg-indent-line-inductive)
+	    (end-of-line)
+	    (if (not (eobp)) (forward-char))
+	    (and pr (progress-reporter-update pr (min (point) e))))
+       finally (progn
+		 (and pr (progress-reporter-done pr))
+		 (deactivate-mark))))))
+
 (defun ksp-cfg-cleanup ()
   "Perform various cleanups of the buffer.
 
 This will re-indent, convert spaces to tabs, and perform general
 whitespace cleanup like trailing blank removal."
-  (interactive)
+  (interactive "*")
   (tabify (point-min) (point-max))
-  (indent-region (point-min) (point-max))
+  (ksp-cfg-indent-region (point-min) (point-max))
   (whitespace-cleanup))
 
 ;; shamelessly borrowed timer from eldoc-mode
@@ -425,51 +503,58 @@ the message doesn't go to the *Messages* buffer."
 	      (bound-and-true-p edebug-active)))
      (save-excursion
        ;; Well, let's see what we find.
-       (let* ((origin (point))
-	      (bol (progn (beginning-of-line) (point)))
-	      (eol (progn (end-of-line) (point))))
-	 (goto-char origin)
 
-	 ;; Backup a step if we're off the end of the line.
-	 (when (and (eolp)
-		    (not (bolp)))
-	   (backward-char))
+       ;; First, save match state because we're running inside an
+       ;; idle-timer event.  cf. elisp 24 manual 33.6.4.
+       (let ((match-state (match-data)))
+	 (unwind-protect
+	     (let* ((origin (point))
+		    (bol (progn (beginning-of-line) (point)))
+		    (eol (progn (end-of-line) (point))))
+	       (goto-char origin)
 
-	 ;; Ensure we aren't still bonking our heads on the end of the buffer.
-	 (when (not (eobp))
-	   ;; Backup past the boring pair-closes
-	   (skip-syntax-backward ")-" bol)
+	       ;; Backup a step if we're off the end of the line.
+	       (when (and (eolp)
+			  (not (bolp)))
+		 (backward-char))
 
-	   ;; If we're looking at something that might be a symbol, find
-	   ;; the beginning.
-	   (when (eq (char-syntax (char-after)) ?_)
-	     (skip-syntax-backward "_" bol))
+	       ;; Ensure we aren't still bonking our heads on the end of the buffer.
+	       (when (not (eobp))
+		 ;; Backup past the boring pair-closes
+		 (skip-syntax-backward ")-" bol)
 
-	   ;; and the beginning of any prefixed punctuation
-	   (skip-syntax-backward "." bol)
+		 ;; If we're looking at something that might be a symbol, find
+		 ;; the beginning.
+		 (when (eq (char-syntax (char-after)) ?_)
+		   (skip-syntax-backward "_" bol))
 
-	   ;; but if that puts us at the start of a [...], then do that
-	   ;; again, unless it's a :has
-	   (when (and (eq (char-before) ?\[)
-		      (not (looking-back ":HAS\\[" bol)))
-	     (backward-char)
-	     (skip-syntax-backward "_" bol)
-	     (skip-syntax-backward "." bol))
+		 ;; and the beginning of any prefixed punctuation
+		 (skip-syntax-backward "." bol)
 
-	   (cond
-	    ((looking-at ".*=") nil) ;; no help for keys yet
-	    ((and (looking-at ksp-cfg-node-decl-regexp)
-		  (not (looking-back ":HAS\\[")))
-	     (ksp-cfg-explain-node-decl))
-	    ((looking-at ksp-cfg-filter-spec-regexp)
-	     (ksp-cfg-explain-filter-spec))
-	    ((looking-at ksp-cfg-filter-payload-regexp)
-	     (ksp-cfg-explain-filter-payload))
-	    ((ksp-cfg-in-value-of-key-p "attachRules")
-	     (message "%s" "attachRules: list of numbers (0=false, 1=true): stack, srfAttach, allowStack, allowSrfAttach, allowCollision"))
-	    ((ksp-cfg-in-value-of-key-p "name")
-	     (message "%s" "name: sets the name of this node"))
-	    (t nil))))))))
+		 ;; but if that puts us at the start of a [...], then do that
+		 ;; again, unless it's a :has
+		 (when (and (eq (char-before) ?\[)
+			    (not (looking-back ":HAS\\[" bol)))
+		   (backward-char)
+		   (skip-syntax-backward "_" bol)
+		   (skip-syntax-backward "." bol))
+
+		 (cond
+		  ((looking-at ".*=") nil) ;; no help for keys yet
+		  ((and (looking-at ksp-cfg-node-decl-regexp)
+			(not (looking-back ":HAS\\[")))
+		   (ksp-cfg-explain-node-decl))
+		  ((looking-at ksp-cfg-filter-spec-regexp)
+		   (ksp-cfg-explain-filter-spec))
+		  ((looking-at ksp-cfg-filter-payload-regexp)
+		   (ksp-cfg-explain-filter-payload))
+		  ((ksp-cfg-in-value-of-key-p "attachRules")
+		   (message "%s" "attachRules: list of numbers (0=false, 1=true): stack, srfAttach, allowStack, allowSrfAttach, allowCollision"))
+		  ((ksp-cfg-in-value-of-key-p "name")
+		   (message "%s" "name: sets the name of this node"))
+		  (t nil))))
+	   (set-match-data match-state)))))))
+
 
 (defun ksp-cfg-clear-message ()
   "Clear the message display, if any."
@@ -477,7 +562,7 @@ the message doesn't go to the *Messages* buffer."
     (message nil)))
 
 (defun ksp-cfg-maybe-cleanup-on-save ()
-  "Call ksp-cfg-cleanup from the before-save-hook if enabled."
+  "Call `ksp-cfg-cleanup' from the `before-save-hook' if enabled."
   (when ksp-cfg-cleanup-on-save
     (ksp-cfg-cleanup)))
 
@@ -503,11 +588,17 @@ might be used.
   (set (make-local-variable 'comment-start) "//")
   (set (make-local-variable 'comment-start-skip) "//+\\s-*")
   (set (make-local-variable 'comment-end) "")
-  (set (make-local-variable 'indent-line-function) #'ksp-cfg-indent-line)
+  (set (make-local-variable 'indent-line-function)
+       (lambda () (funcall ksp-cfg-indent-method)))
+  (set (make-local-variable 'indent-region-function)
+       #'ksp-cfg-indent-region)
 
-  (add-hook 'post-command-hook #'ksp-cfg-schedule-timer nil t)
-  (add-hook 'pre-command-hook #'ksp-cfg-clear-message nil t)
-  (add-hook 'before-save-hook #'ksp-cfg-maybe-cleanup-on-save)
+  (add-hook (make-local-variable 'post-command-hook)
+	    #'ksp-cfg-schedule-timer nil t)
+  (add-hook (make-local-variable 'pre-command-hook)
+	    #'ksp-cfg-clear-message nil t)
+  (add-hook (make-local-variable 'before-save-hook)
+	    #'ksp-cfg-maybe-cleanup-on-save)
   (when ksp-cfg-cleanup-on-load
     (ksp-cfg-cleanup)))
 

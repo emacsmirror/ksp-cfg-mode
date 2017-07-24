@@ -6,16 +6,15 @@ A major-mode for editing Kerbal Space Program part (and other things) config fil
 
 ## Status
 
-* Release 0.4
+* Release 0.5
 * Syntactic lex with good (well, enthusiastic and correct if not tasteful) highlighting
 * Intelligent automatic indentation
 * Context-sensitive advice in the minibuffer
 
 ## Changes
 
-* A better region indent and inductive line indent
-* Make more features configurable and default-off
-* Ensure hooks are buffer-local
+* Basic updates for KSP 1.3.0
+* Reluctantly acknowlege 2017
 
 ## To-Do features
 

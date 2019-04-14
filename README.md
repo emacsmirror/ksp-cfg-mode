@@ -6,15 +6,22 @@ A major-mode for editing Kerbal Space Program part (and other things) config fil
 
 ## Status
 
-* Release 0.5.1
 * Syntactic lex with good (well, enthusiastic and correct if not tasteful) highlighting
 * Intelligent automatic indentation
 * Context-sensitive advice in the minibuffer
 
-## Changes
+## Changes in 0.6
 
-* Basic updates for KSP 1.4.3
-* Reluctantly acknowlege 2018
+* Ack 2019
+* Bump version
+* Add emacs 24 req for lexical-binding (still optional)
+* Appease checkdoc for symbols in docstrings
+* Update cfg node keywords for 1.6.1
+* Fix word/symbol syntax table entries for better word motion
+* Prefer `forward-line` over `(end-of-line) (forward-char)` for better evil-mode compatibility
+* Switch to cl-symbol-macrolet for end-of-indent-region checks for safer handling of over indented region at end-of-buffer.
+* Reformat with `indent-tabs-mode`: `nil` because _I can_.
+* Adjust `(looking-back)` use for modern Emacs 25.1+ 2-3 argument `looking-back`; should remain compatible with either.
 
 ## To-Do features
 

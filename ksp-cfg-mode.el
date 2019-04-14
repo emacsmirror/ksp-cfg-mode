@@ -1,18 +1,18 @@
-;;; ksp-cfg-mode.el --- major mode for editing KSP CFG files
+;;; ksp-cfg-mode.el --- major mode for editing KSP CFG files -*- lexical-binding: t; -*-
 
-;; Copyright (c) 2016-2018 Emily Backes
+;; Copyright (c) 2016-2019 Emily Backes
 
 ;; Author: Emily Backes <lucca@accela.net>
 ;; Maintainer: Emily Backes <lucca@accela.net>
 ;; Created: 3 May 2016
 
-;; Version: 0.5.1
-;; Package-Version: 0.5
+;; Version: 0.6
+;; Package-Version: 0.6
 ;; Keywords: data
 ;; URL: http://github.com/lashtear/ksp-cfg-mode
 ;; Homepage: http://github.com/lashtear/ksp-cfg-mode
 ;; Package: ksp-cfg-mode
-;; Package-Requires: ((cl-lib "0.5"))
+;; Package-Requires: ((emacs "24") (cl-lib "0.5"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -79,13 +79,13 @@ what width you use."
   :safe t)
 
 (defcustom ksp-cfg-cleanup-on-load nil
-  "Run ksp-cfg-cleanup on load for indentation."
+  "Run ‘ksp-cfg-cleanup’ on load for indentation."
   :type 'boolean
   :group 'ksp-cfg
   :safe t)
 
 (defcustom ksp-cfg-cleanup-on-save nil
-  "Run ksp-cfg-cleanup on save for indentation."
+  "Run ‘ksp-cfg-cleanup’ on save for indentation."
   :type 'boolean
   :group 'ksp-cfg
   :safe t)
@@ -93,7 +93,7 @@ what width you use."
 (defcustom ksp-cfg-indent-method #'ksp-cfg-indent-line
   "Select single-line indentation methodology."
   :type '(radio (function-item #'ksp-cfg-indent-line)
-		(function-item #'ksp-cfg-indent-line-inductive))
+                (function-item #'ksp-cfg-indent-line-inductive))
   :group 'ksp-cfg
   :risky t)
 
@@ -129,7 +129,7 @@ Use `ksp-cfg-idle-help` to disable this entirely."
 
 (defface ksp-cfg-name-face
   '((t (:inherit font-lock-variable-name-face :slant italic)))
- "Face for KSP-cfg names, as in \[name\] or name = ..."
+  "Face for KSP-cfg names, as in \[name\] or name = ..."
   :group 'ksp-cfg-faces)
 
 (defface ksp-cfg-constant-face
@@ -139,7 +139,7 @@ Use `ksp-cfg-idle-help` to disable this entirely."
 
 (defface ksp-cfg-number-face
   '((t (:inherit font-lock-string-face)))
- "Face for KSP-cfg numbers."
+  "Face for KSP-cfg numbers."
   :group 'ksp-cfg-faces)
 
 (defface ksp-cfg-filter-face
@@ -152,41 +152,40 @@ Use `ksp-cfg-idle-help` to disable this entirely."
   "Face for KSP-cfg operators."
   :group 'ksp-cfg-faces)
 
-;; Generated from KSP 1.4.3 using something like:
-;; $ find ~/.local/share/Steam/SteamApps/common/Kerbal\ Space\ Program/GameData/Squad -type f -name \*.cfg -print0 |xargs -0 grep '^\s*[A-Z]' |grep -v = |cut -d: -f2 |perl -pe 's/^\s+//; s[//.*$][]; s/\s+$//; $_="\"$_\"\n"' |sort -u |tr \\n \  |fmt
-
+;; Generated from KSP 1.6.1 using something like:
+;; $ find ~/.local/share/Steam/SteamApps/common/Kerbal\ Space\ Program/GameData/Squad -type f -name \*.cfg -print0 |xargs -0 grep '^\s*[A-Z]' |grep -v = |cut -d: -f2 |perl -pe 's[//.*$][]; s/\W+/ /g; s/^\s+//; s/\s+$//; $_="\"$_\"\n"' |sort -u |tr \\n \  |fmt
 (defvar ksp-cfg-node-types
   '("AbortActionGroup" "AGENT" "ARM" "AUDIO" "AUDIO_LOOP" "AUDIO_MULTI_POOL"
     "Base" "BRAKES" "CAMERA_MODE" "CAMERA_MOUSE_TOGGLE" "CAMERA_NEXT"
     "CAMERA_ORBIT_DOWN" "CAMERA_ORBIT_LEFT" "CAMERA_ORBIT_RIGHT"
     "CAMERA_ORBIT_UP" "CAMERA_RESET" "Conclusion" "CONSTRAINFX"
-    "CONSTRAINLOOKFX" "CONSTRAINT" "CREW_REQUEST" "CustomActionGroup1"
-    "CustomActionGroup10" "CustomActionGroup2" "CustomActionGroup3"
-    "CustomActionGroup4" "CustomActionGroup5" "CustomActionGroup6"
-    "CustomActionGroup7" "CustomActionGroup8" "CustomActionGroup9"
-    "DISPLAY_MODES" "Distribution" "Docking_toggleRotLin" "DRAG_CUBE"
-    "Editor_coordSystem" "Editor_fineTweak" "Editor_modeOffset"
-    "Editor_modePlace" "Editor_modeRoot" "Editor_modeRotate"
-    "Editor_partSearch" "Editor_pitchDown" "Editor_pitchUp"
-    "Editor_resetRotation" "Editor_rollLeft" "Editor_rollRight"
-    "Editor_toggleAngleSnap" "Editor_toggleSymMethod" "Editor_toggleSymMode"
-    "Editor_yawLeft" "Editor_yawRight" "Editor_zoomScrollModifier" "EFFECT"
-    "EFFECTS" "EVA_back" "EVA_Board" "EVA_ChuteDeploy" "EVA_forward"
-    "EVA_Jump" "EVA_left" "EVA_Lights" "EVA_Orient" "EVA_Pack_back"
-    "EVA_Pack_down" "EVA_Pack_forward" "EVA_Pack_left" "EVA_Pack_right"
-    "EVA_Pack_up" "EVA_right" "EVA_Run" "EVA_ToggleMovementMode"
-    "EVA_TogglePack" "EVA_Use" "EVA_yaw_left" "EVA_yaw_right" "Exceptional"
-    "EXPERIENCE_TRAIT" "EXPERIMENT_DEFINITION" "Expiration" "EXTRA_INFO"
-    "Flag" "FOCUS_NEXT_VESSEL" "FOCUS_PREV_VESSEL" "Funds" "GAMEOBJECTS"
-    "GLOBAL_RESOURCE" "Grand" "HEADLIGHT_TOGGLE" "INPUT_RESOURCE"
-    "INTERNAL" "Introduction" "IonPlume" "ISRU" "KEYBOARD_LAYOUT" "KEY_MAP"
-    "LANDING_GEAR" "LAUNCH_STAGES" "LINUX_VARIANT" "MAP_VIEW_TOGGLE"
-    "MODEL" "MODEL_MULTI_PARTICLE" "MODEL_PARTICLE" "MODIFIER_KEY"
-    "MODULE" "NAVBALL_TOGGLE" "OSX_VARIANT" "OUTPUT_RESOURCE"
-    "PARAM" "Parent" "PART" "PART_REQUEST" "PassiveEnergy" "PAUSE"
-    "PITCH_DOWN" "PITCH_UP" "PLANETARY_RESOURCE" "PRECISION_CTRL"
-    "PREFAB_PARTICLE" "Problem" "Progression" "PROP" "PROPELLANT"
-    "QUICKLOAD" "QUICKSAVE" "RCS_TOGGLE" "RDNode" "Recovery"
+    "CONSTRAINLOOKFX" "CONSTRAINT" "CONTROLPOINT" "CREW_REQUEST"
+    "CustomActionGroup1" "CustomActionGroup10" "CustomActionGroup2"
+    "CustomActionGroup3" "CustomActionGroup4" "CustomActionGroup5"
+    "CustomActionGroup6" "CustomActionGroup7" "CustomActionGroup8"
+    "CustomActionGroup9" "DISPLAY_MODES" "Distribution" "Docking_toggleRotLin"
+    "DRAG_CUBE" "Editor_coordSystem" "Editor_fineTweak"
+    "Editor_modeOffset" "Editor_modePlace" "Editor_modeRoot"
+    "Editor_modeRotate" "Editor_partSearch" "Editor_pitchDown"
+    "Editor_pitchUp" "Editor_resetRotation" "Editor_rollLeft"
+    "Editor_rollRight" "Editor_toggleAngleSnap" "Editor_toggleSymMethod"
+    "Editor_toggleSymMode" "Editor_yawLeft" "Editor_yawRight"
+    "Editor_zoomScrollModifier" "EFFECT" "EFFECTS" "EVA_back" "EVA_Board"
+    "EVA_ChuteDeploy" "EVA_forward" "EVA_Jump" "EVA_left" "EVA_Lights"
+    "EVA_Orient" "EVA_Pack_back" "EVA_Pack_down" "EVA_Pack_forward"
+    "EVA_Pack_left" "EVA_Pack_right" "EVA_Pack_up" "EVA_right" "EVA_Run"
+    "EVA_ToggleMovementMode" "EVA_TogglePack" "EVA_Use" "EVA_yaw_left"
+    "EVA_yaw_right" "Exceptional" "EXPERIENCE_TRAIT" "EXPERIMENT_DEFINITION"
+    "Expiration" "EXTRA_INFO" "Flag" "FOCUS_NEXT_VESSEL" "FOCUS_PREV_VESSEL"
+    "Funds" "GAMEOBJECTS" "GLOBAL_RESOURCE" "Grand" "HEADLIGHT_TOGGLE"
+    "INPUT_RESOURCE" "INTERNAL" "Introduction" "IonPlume" "ISRU"
+    "KEYBOARD_LAYOUT" "KEY_MAP" "LANDING_GEAR" "LAUNCH_STAGES"
+    "LINUX_VARIANT" "MAP_VIEW_TOGGLE" "MODEL" "MODEL_MULTI_PARTICLE"
+    "MODEL_PARTICLE" "MODIFIER_KEY" "MODULE" "NAVBALL_TOGGLE" "NODES"
+    "OSX_VARIANT" "OUTPUT_RESOURCE" "PARAM" "Parent" "PART" "PART_REQUEST"
+    "PassiveEnergy" "PAUSE" "PITCH_DOWN" "PITCH_UP" "PLANETARY_RESOURCE"
+    "PRECISION_CTRL" "PREFAB_PARTICLE" "Problem" "Progression" "PROP"
+    "PROPELLANT" "QUICKLOAD" "QUICKSAVE" "RCS_TOGGLE" "RDNode" "Recovery"
     "Reputation" "REQUIRED_EFFECTS" "RESOURCE" "RESOURCE_CONFIGURATION"
     "RESOURCE_DEFINITION" "RESOURCE_OVERLAY_CONFIGURATION_DOTS"
     "RESOURCE_OVERLAY_CONFIGURATION_LINES"
@@ -219,10 +218,10 @@ Use `ksp-cfg-idle-help` to disable this entirely."
 
 (defvar ksp-cfg-node-decl-regexp
   (concat "\\([-@+$!%]?\\)\\("
-	  (regexp-opt ksp-cfg-node-types 'symbols)
-	  "\\)\\(?:\\[\\("
-	  ksp-cfg-wildcarded-name-regexp
-	  "\\)\\]\\)?"))
+          (regexp-opt ksp-cfg-node-types 'symbols)
+          "\\)\\(?:\\[\\("
+          ksp-cfg-wildcarded-name-regexp
+          "\\)\\]\\)?"))
 
 (defun ksp-cfg-explain-node-decl ()
   "Provide context-sensitive help related to a cfg NODE.
@@ -230,19 +229,19 @@ Use `ksp-cfg-idle-help` to disable this entirely."
 The node should have been just-matched with
 `ksp-cfg-node-decl-regexp'."
   (let ((op (match-string 1))
-	(node-type (match-string 2))
-	(target (match-string 4)))
+        (node-type (match-string 2))
+        (target (match-string 4)))
     (message "%s%s: %s %s node%s"
-	     op
-	     node-type
-	     (cl-case (string-to-char op)
-	       (?@ "edit an existing")
-	       ((?+ ?$) "copy an existing")
-	       ((?- ?!) "delete an existing")
-	       (?% "edit or create a new")
-	       (t "create a new"))
-	     node-type
-	     (if target (concat " named " target) ""))))
+             op
+             node-type
+             (cl-case (string-to-char op)
+               (?@ "edit an existing")
+               ((?+ ?$) "copy an existing")
+               ((?- ?!) "delete an existing")
+               (?% "edit or create a new")
+               (t "create a new"))
+             node-type
+             (if target (concat " named " target) ""))))
 
 (defvar ksp-cfg-filter-spec-regexp
   (concat ":\\(" (regexp-opt ksp-cfg-filter-types 'symbols) "\\)"))
@@ -253,30 +252,30 @@ The node should have been just-matched with
 The specshould have been just-matched with
 `ksp-cfg-filter-spec-regexp'."
   (let ((filter-type (match-string 1))
-	(decased-type (upcase (match-string 1))))
+        (decased-type (upcase (match-string 1))))
     (message ":%s%s" filter-type
-	     (cond
-	      ((equal decased-type "HAS")
-	       "[...]: filter by nodes that have ...")
-	      ((equal decased-type "NEEDS")
-	       "[...]: apply this patch only if ... is present")
-	      ((equal decased-type "FIRST")
-	       ": apply this patch in the first pass")
-	      ((equal decased-type "LEGACY")
-	       ": apply this patch in the legacy pass -- don't use this")
-	      ((equal decased-type "BEFORE")
-	       "[modname]: apply this patch before the patches for modname")
-	      ((equal decased-type "FOR")
-	       "[modname]: apply this patch with the patches for modname")
-	      ((equal decased-type "AFTER")
-	       "[modname]: apply this patch after the patches for modname")
-	      ((equal decased-type "FINAL")
-	       ": apply this patch in the final pass, after all others")))))
+             (cond
+              ((equal decased-type "HAS")
+               "[...]: filter by nodes that have ...")
+              ((equal decased-type "NEEDS")
+               "[...]: apply this patch only if ... is present")
+              ((equal decased-type "FIRST")
+               ": apply this patch in the first pass")
+              ((equal decased-type "LEGACY")
+               ": apply this patch in the legacy pass -- don't use this")
+              ((equal decased-type "BEFORE")
+               "[modname]: apply this patch before the patches for modname")
+              ((equal decased-type "FOR")
+               "[modname]: apply this patch with the patches for modname")
+              ((equal decased-type "AFTER")
+               "[modname]: apply this patch after the patches for modname")
+              ((equal decased-type "FINAL")
+               ": apply this patch in the final pass, after all others")))))
 
 (defvar ksp-cfg-filter-payload-regexp
   (concat "\\([,&|]?\\)\\([-!@#~]\\)\\(\\s_+\\)\\(?:\\[\\("
-	  ksp-cfg-wildcarded-name-regexp
-	  "\\)\\]\\)?"))
+          ksp-cfg-wildcarded-name-regexp
+          "\\)\\]\\)?"))
 
 (defun ksp-cfg-explain-filter-payload ()
   "Provide context-sensitive help related to :use filter guts.
@@ -284,23 +283,23 @@ The specshould have been just-matched with
 The payloads should have been just-matched with
 `ksp-cfg-filter-payload-regexp'."
   (let ((outer-context (match-string 1))
-	(inner-operator (match-string 2))
-	(symbol-operand (match-string 3))
-	(symbol-target (match-string 4)))
+        (inner-operator (match-string 2))
+        (symbol-operand (match-string 3))
+        (symbol-target (match-string 4)))
     (message "filter payload: %s%s%s"
-	     (cl-case (string-to-char outer-context)
-	       (?| (concat outer-context ": ... OR "))
-	       ((?& ?,) (concat outer-context ": ... AND "))
-	       (t ""))
-	     (format
-	      (cl-case (string-to-char inner-operator)
-		(?@ "%s: include %s nodes")
-		((?! ?-) "%s: exclude %s nodes")
-		(?# "%s: include %s keys")
-		(?~ "%s: exclude %s keys"))
-	      inner-operator
-	      symbol-operand)
-	     (if symbol-target (concat "matching " symbol-target) ""))))
+             (cl-case (string-to-char outer-context)
+               (?| (concat outer-context ": ... OR "))
+               ((?& ?,) (concat outer-context ": ... AND "))
+               (t ""))
+             (format
+              (cl-case (string-to-char inner-operator)
+                (?@ "%s: include %s nodes")
+                ((?! ?-) "%s: exclude %s nodes")
+                (?# "%s: include %s keys")
+                (?~ "%s: exclude %s keys"))
+              inner-operator
+              symbol-operand)
+             (if symbol-target (concat "matching " symbol-target) ""))))
 
 (defvar ksp-cfg-keywords
   `((,ksp-cfg-node-decl-regexp
@@ -323,14 +322,14 @@ The payloads should have been just-matched with
      (1 'ksp-cfg-number-face))
     (,(concat "\\(:" (regexp-opt ksp-cfg-filter-types 'symbols) "\\)")
      (1 'ksp-cfg-filter-face)))
-  "Keywords used by ksp-cfg-mode font-locking.")
+  "Keywords used by ‘ksp-cfg-mode’ font-locking.")
 
 (defvar ksp-cfg-mode-syntax-table
   (let ((st (make-syntax-table)))
     (modify-syntax-entry '(?! . ?~) "." st)
-    (modify-syntax-entry '(?A . ?Z) "_" st)
-    (modify-syntax-entry '(?a . ?z) "_" st)
-    (modify-syntax-entry '(?0 . ?9) "_" st)
+    (modify-syntax-entry '(?A . ?Z) "w" st)
+    (modify-syntax-entry '(?a . ?z) "w" st)
+    (modify-syntax-entry '(?0 . ?9) "w" st)
     (modify-syntax-entry ?_ "_" st)
     (modify-syntax-entry ?\  "-" st)
     (modify-syntax-entry ?\t "-" st)
@@ -348,17 +347,17 @@ The payloads should have been just-matched with
     ;;; enable = for this (to end-of-line, I suppose), but that isn't
     ;;; always desirable either.
     st)
-  "Syntax table used in ksp-cfg-mode buffers.")
+  "Syntax table used in `ksp-cfg-mode' buffers.")
 
 (defvar ksp-cfg-mode-abbrev-table nil
-  "Abbreviation table used in ksp-cfg-mode buffers.")
+  "Abbreviation table used in ‘ksp-cfg-mode’ buffers.")
 (define-abbrev-table 'ksp-cfg-mode-abbrev-table '())
 
 (defvar ksp-cfg-mode-map
   (let ((map (make-sparse-keymap "KSP-cfg mode")))
     (define-key map "\C-c\C-c" 'comment-region)
     map)
-  "Keymap used in ksp-cfg-mode buffers.")
+  "Keymap used in ‘ksp-cfg-mode’ buffers.")
 
 (defun ksp-cfg-region-balance (start end)
   "Determine the structural balance across the described region.
@@ -374,9 +373,9 @@ This simple lexer does understand and handle the // so that
 commented structures do not interfere with indentation."
   (save-excursion
     (let ((s (progn
-	       (goto-char start)
-	       (beginning-of-line)
-	       (point))))
+               (goto-char start)
+               (beginning-of-line)
+               (point))))
       (cl-loop
        initially (goto-char s)
        do (skip-chars-forward "^{}/" end)
@@ -404,14 +403,14 @@ correct."
   (interactive "*")
   (save-excursion
     (let* ((bol (progn (beginning-of-line) (point)))
-	   (eol (progn (end-of-line) (point)))
-	   (nest (ksp-cfg-region-balance (point-min) eol))
-	   (local-change (ksp-cfg-region-balance bol eol))
-	   (goal (* ksp-cfg-basic-indent
-		    (- nest (max 0 local-change))))
-	   (delta (- goal (current-indentation))))
+           (eol (progn (end-of-line) (point)))
+           (nest (ksp-cfg-region-balance (point-min) eol))
+           (local-change (ksp-cfg-region-balance bol eol))
+           (goal (* ksp-cfg-basic-indent
+                    (- nest (max 0 local-change))))
+           (delta (- goal (current-indentation))))
       (when (and (>= goal 0) (not (zerop delta)))
-	(indent-rigidly bol eol delta)))))
+        (indent-rigidly bol eol delta)))))
 
 (defun ksp-cfg-previous-balance ()
   "Determine the previous indent level.
@@ -427,10 +426,10 @@ line-- assuming that was indented right."
     (beginning-of-line)
     (skip-syntax-backward "->")
     (let* ((bol (progn (beginning-of-line) (point)))
-	   (eol (progn (end-of-line) (point)))
-	   (prev-indent (ceiling (current-indentation)
-				 ksp-cfg-basic-indent))
-	   (local-change (ksp-cfg-region-balance bol eol)))
+           (eol (progn (end-of-line) (point)))
+           (prev-indent (ceiling (current-indentation)
+                                 ksp-cfg-basic-indent))
+           (local-change (ksp-cfg-region-balance bol eol)))
       (+ prev-indent (max 0 local-change)))))
 
 (defun ksp-cfg-indent-line-inductive ()
@@ -440,38 +439,40 @@ See also `ksp-cfg-indent-line'."
   (interactive "*")
   (save-excursion
     (let* ((bol (progn (beginning-of-line) (point)))
-	   (eol (progn (end-of-line) (point)))
-	   (prev-bal (ksp-cfg-previous-balance))
-	   (local-change (ksp-cfg-region-balance bol eol))
-	   (goal (* ksp-cfg-basic-indent
-		    (+ prev-bal (min 0 local-change))))
-	   (delta (- goal (current-indentation))))
+           (eol (progn (end-of-line) (point)))
+           (prev-bal (ksp-cfg-previous-balance))
+           (local-change (ksp-cfg-region-balance bol eol))
+           (goal (* ksp-cfg-basic-indent
+                    (+ prev-bal (min 0 local-change))))
+           (delta (- goal (current-indentation))))
       (when (and (>= goal 0) (not (zerop delta)))
-	(indent-rigidly bol eol delta)))))
+        (indent-rigidly bol eol delta)))))
 
 (defun ksp-cfg-indent-region (start end)
   "Indent the region START .. END."
   (interactive "*r")
-  (let ((e (min (point-max) end)))
-    (save-excursion
-      (cl-loop
-       with pr
-       initially (progn
-		   (goto-char start)
-		   (ksp-cfg-indent-line)
-		   (forward-line 1)
-		   (setq pr
-			 (make-progress-reporter "Indenting region..."
-						 (point) e)))
-       while (< (1+ (point)) e)
-       do (progn
-	    (ksp-cfg-indent-line-inductive)
-	    (end-of-line)
-	    (if (not (eobp)) (forward-char))
-	    (and pr (progress-reporter-update pr (min (point) e))))
-       finally (progn
-		 (and pr (progress-reporter-done pr))
-		 (deactivate-mark))))))
+  (let ((garbage-collection-messages nil))
+    (cl-symbol-macrolet ((work-end (min end (point-max))))
+      (save-excursion
+        (cl-loop
+         with pr
+         initially (progn
+                     (goto-char start)
+                     (ksp-cfg-indent-line)
+                     (forward-line 1)
+                     (setq pr
+                           (make-progress-reporter "Indenting region..."
+                                                   (point) work-end
+                                                   (point) start)))
+         while (< (point) work-end)
+         do (progn
+              (ksp-cfg-indent-line-inductive)
+              (end-of-line)
+              (if (not (eobp)) (forward-line))
+              (and pr (progress-reporter-update pr (min (point) work-end))))
+         finally (progn
+                   (and pr (progress-reporter-done pr))
+                   (deactivate-mark)))))))
 
 (defun ksp-cfg-cleanup ()
   "Perform various cleanups of the buffer.
@@ -500,21 +501,20 @@ time if already running and the `ksp-cfg-idle-delay' has
 changed."
   (or (not ksp-cfg-show-idle-help)
       (and ksp-cfg-timer
-	   (memq ksp-cfg-timer timer-idle-list))
+           (memq ksp-cfg-timer timer-idle-list))
       (setq ksp-cfg-timer
-	    (run-with-idle-timer
-	     ksp-cfg-idle-delay nil
-	     (lambda () (ksp-cfg-show-help)))))
+            (run-with-idle-timer
+             ksp-cfg-idle-delay nil
+             (lambda () (ksp-cfg-show-help)))))
   (cond ((not (= ksp-cfg-idle-delay ksp-cfg-current-idle-delay))
-	 (setq ksp-cfg-current-idle-delay ksp-cfg-idle-delay)
-	 (timer-set-idle-time ksp-cfg-timer ksp-cfg-idle-delay t))))
+         (setq ksp-cfg-current-idle-delay ksp-cfg-idle-delay)
+         (timer-set-idle-time ksp-cfg-timer ksp-cfg-idle-delay t))))
 
 (defun ksp-cfg-in-value-of-key-p (key)
-  "Return true if point is inside the value of key KEY."
+  "Return non-nil if point is inside the value of key KEY."
   (save-excursion
     (let ((origin (point))
-	  (bol (progn (beginning-of-line) (point)))
-	  (re (concat "^\\s-*\\s.?" key "\\s-*=")))
+          (re (concat "^\\s-*\\s.?" key "\\s-*=")))
       (search-forward-regexp re origin t))))
 
 (defun ksp-cfg-show-help ()
@@ -525,62 +525,60 @@ the message doesn't go to the *Messages* buffer."
   (let ((message-log-max nil))
     (and
      (not (or this-command
-	      executing-kbd-macro
-	      (bound-and-true-p edebug-active)))
+              executing-kbd-macro
+              (bound-and-true-p edebug-active)))
      (save-excursion
        ;; Well, let's see what we find.
 
        ;; First, save match state because we're running inside an
        ;; idle-timer event.  cf. elisp 24 manual 33.6.4.
        (let ((match-state (match-data)))
-	 (unwind-protect
-	     (let* ((origin (point))
-		    (bol (progn (beginning-of-line) (point)))
-		    (eol (progn (end-of-line) (point))))
-	       (goto-char origin)
+         (unwind-protect
+             (let* ((origin (point))
+                    (bol (progn (beginning-of-line) (point))))
+               (goto-char origin)
 
-	       ;; Backup a step if we're off the end of the line.
-	       (when (and (eolp)
-			  (not (bolp)))
-		 (backward-char))
+               ;; Backup a step if we're off the end of the line.
+               (when (and (eolp)
+                          (not (bolp)))
+                 (backward-char))
 
-	       ;; Ensure we aren't still bonking our heads on the end of the buffer.
-	       (when (not (eobp))
-		 ;; Backup past the boring pair-closes
-		 (skip-syntax-backward ")-" bol)
+               ;; Ensure we aren't still bonking our heads on the end of the buffer.
+               (when (not (eobp))
+                 ;; Backup past the boring pair-closes
+                 (skip-syntax-backward ")-" bol)
 
-		 ;; If we're looking at something that might be a symbol, find
-		 ;; the beginning.
-		 (when (eq (char-syntax (char-after)) ?_)
-		   (skip-syntax-backward "_" bol))
+                 ;; If we're looking at something that might be a symbol, find
+                 ;; the beginning.
+                 (when (eq (char-syntax (char-after)) ?_)
+                   (skip-syntax-backward "_" bol))
 
-		 ;; and the beginning of any prefixed punctuation
-		 (skip-syntax-backward "." bol)
+                 ;; and the beginning of any prefixed punctuation
+                 (skip-syntax-backward "." bol)
 
-		 ;; but if that puts us at the start of a [...], then do that
-		 ;; again, unless it's a :has
-		 (when (and (eq (char-before) ?\[)
-			    (not (looking-back ":HAS\\[" bol)))
-		   (backward-char)
-		   (skip-syntax-backward "_" bol)
-		   (skip-syntax-backward "." bol))
+                 ;; but if that puts us at the start of a [...], then do that
+                 ;; again, unless it's a :has
+                 (when (and (eq (char-before) ?\[)
+                            (not (looking-back ":HAS\\[" bol)))
+                   (backward-char)
+                   (skip-syntax-backward "_" bol)
+                   (skip-syntax-backward "." bol))
 
-		 (cond
-		  ((looking-at ".*=") nil) ;; no help for keys yet
-		  ((and (looking-at ksp-cfg-node-decl-regexp)
-			(not (looking-back ":HAS\\[")))
-		   (ksp-cfg-explain-node-decl))
-		  ((looking-at ksp-cfg-filter-spec-regexp)
-		   (ksp-cfg-explain-filter-spec))
-		  ((looking-at ksp-cfg-filter-payload-regexp)
-		   (ksp-cfg-explain-filter-payload))
-		  ((ksp-cfg-in-value-of-key-p "attachRules")
-		   (message "%s" "attachRules: list of numbers (0=false, 1=true): stack, srfAttach, allowStack, allowSrfAttach, allowCollision"))
-		  ((ksp-cfg-in-value-of-key-p "name")
-		   (message "%s" "name: sets the name of this node"))
-		  (t nil))))
-	   (set-match-data match-state)))))))
-
+                 (cond
+                  ((looking-at ".*=") nil) ;; no help for keys yet
+                  ((and (looking-at ksp-cfg-node-decl-regexp)
+                        (not (looking-back ":HAS\\[" (- (point) 5) t)))
+                   (ksp-cfg-explain-node-decl))
+                  ((looking-at ksp-cfg-filter-spec-regexp)
+                   (ksp-cfg-explain-filter-spec))
+                  ((looking-at ksp-cfg-filter-payload-regexp)
+                   (ksp-cfg-explain-filter-payload))
+                  ((ksp-cfg-in-value-of-key-p "attachRules")
+                   (message "%s" "attachRules: list of numbers (0=false, 1=true): stack, srfAttach, allowStack, allowSrfAttach, allowCollision"))
+                  ((ksp-cfg-in-value-of-key-p "name")
+                   (message "%s" "name: sets the name of this node"))
+                  (t nil))))
+           (set-match-data match-state)))))))
 
 (defun ksp-cfg-clear-message ()
   "Clear the message display, if any."
@@ -605,10 +603,10 @@ might be used.
 
   ;; already buffer-local when set
   (setq font-lock-defaults  '(ksp-cfg-keywords nil t nil)
-	indent-tabs-mode     t
-	tab-width            ksp-cfg-tab-width
-	local-abbrev-table   ksp-cfg-mode-abbrev-table
-	case-fold-search     t)
+        indent-tabs-mode     t
+        tab-width            ksp-cfg-tab-width
+        local-abbrev-table   ksp-cfg-mode-abbrev-table
+        case-fold-search     t)
 
   ;; make buffer-local for our purposes
   (set (make-local-variable 'comment-start) "//")
@@ -620,14 +618,18 @@ might be used.
        #'ksp-cfg-indent-region)
 
   (add-hook (make-local-variable 'post-command-hook)
-	    #'ksp-cfg-schedule-timer nil t)
+            #'ksp-cfg-schedule-timer nil t)
   (add-hook (make-local-variable 'pre-command-hook)
-	    #'ksp-cfg-clear-message nil t)
+            #'ksp-cfg-clear-message nil t)
   (add-hook (make-local-variable 'before-save-hook)
-	    #'ksp-cfg-maybe-cleanup-on-save)
+            #'ksp-cfg-maybe-cleanup-on-save)
   (when ksp-cfg-cleanup-on-load
     (ksp-cfg-cleanup)))
 
 (provide 'ksp-cfg-mode)
 
 ;;; ksp-cfg-mode.el ends here
+
+;; Local Variables:
+;; indent-tabs-mode: nil
+;; End:
